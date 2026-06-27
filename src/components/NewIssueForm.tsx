@@ -99,7 +99,7 @@ export function NewIssueForm({ onSubmit, onCancel }: Props) {
       <button
         onClick={submit}
         disabled={!description.trim() || saving}
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-signal to-signal-deep py-2 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-signal py-2 text-sm font-semibold text-ink-950 transition-colors hover:bg-signal-soft disabled:opacity-50"
       >
         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
         Log issue

@@ -111,7 +111,7 @@ export function CallerCard({ context, mode, onResolveIssue, onCreateIssue, onLog
   return (
     <div className="surface animate-scale-in flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl shadow-glow">
       {/* Header */}
-      <div className="relative shrink-0 border-b border-white/8 bg-gradient-to-b from-signal/12 to-transparent px-6 pt-5 pb-4">
+      <div className="relative shrink-0 border-b border-white/8 bg-white/[0.02] px-6 pt-5 pb-4">
         <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-signal-soft">
           {mode === 'call' ? (
             <>
@@ -131,7 +131,7 @@ export function CallerCard({ context, mode, onResolveIssue, onCreateIssue, onLog
         </div>
 
         <div className="mt-3 flex items-center gap-3.5">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-signal to-signal-deep text-base font-bold text-white shadow-glow">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-signal/90 text-base font-bold text-ink-950">
             {initialsOf(person.name)}
           </div>
           <div className="min-w-0">
@@ -309,7 +309,7 @@ export function CallerCard({ context, mode, onResolveIssue, onCreateIssue, onLog
         <button
           onClick={handleLog}
           disabled={logging}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-signal to-signal-deep py-2.5 text-sm font-semibold text-white shadow-glow transition-transform hover:-translate-y-px disabled:opacity-60"
+          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-signal py-2.5 text-sm font-semibold text-ink-950 transition-colors hover:bg-signal-soft disabled:opacity-60"
         >
           {logging ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
           {mode === 'call' ? 'Log Call' : 'Log Contact'}

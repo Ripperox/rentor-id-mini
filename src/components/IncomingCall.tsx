@@ -44,8 +44,8 @@ export function IncomingCall({ context, onResolveIssue, onCreateIssue, onLogCall
               className="absolute inline-flex h-20 w-20 animate-ring rounded-full bg-signal/20"
               style={{ animationDelay: '1.2s' }}
             />
-            <span className="relative grid h-20 w-20 place-items-center rounded-full bg-gradient-to-br from-signal to-signal-deep shadow-glow">
-              <Phone className="h-8 w-8 text-white" strokeWidth={2.2} />
+            <span className="relative grid h-20 w-20 place-items-center rounded-full bg-signal/90 shadow-card">
+              <Phone className="h-8 w-8 text-ink-950" strokeWidth={2.2} />
             </span>
           </div>
 
