@@ -17,20 +17,24 @@ export default function App() {
     const context = await call()
     if (context) {
       setModal(context)
-      setCallLog(prev => [{
-        id: crypto.randomUUID(),
-        person: context.person,
-        property: context.property,
-        timestamp: new Date(),
-      }, ...prev])
     }
   }, [call])
 
   const handleLogNote = useCallback(async () => {
     if (!modal) return
-    await logNote(modal)
-    setToast({ message: 'Call logged successfully', type: 'success' })
-    setModal(null)
+    try {
+      await logNote(modal)
+      setCallLog(prev => [{
+        id: crypto.randomUUID(),
+        person: modal.person,
+        property: modal.property,
+        timestamp: new Date(),
+      }, ...prev])
+      setToast({ message: 'Call logged successfully', type: 'success' })
+      setModal(null)
+    } catch {
+      setToast({ message: 'Failed to log call — check connection', type: 'error' })
+    }
   }, [modal, logNote])
 
   return (

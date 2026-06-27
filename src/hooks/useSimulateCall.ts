@@ -56,10 +56,11 @@ export function useSimulateCall() {
   }, [])
 
   const logNote = useCallback(async (ctx: CallerContext): Promise<void> => {
-    await supabase.from('call_logs').insert({
+    const { error } = await supabase.from('call_logs').insert({
       person_id: ctx.person.id,
       property_id: ctx.property.id,
     })
+    if (error) throw error
   }, [])
 
   return { call, logNote, loading, error }

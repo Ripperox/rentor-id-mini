@@ -17,11 +17,18 @@ function timeAgo(iso: string): string {
 
 export function CallerModal({ context, onLogNote, onDismiss }: Props) {
   const [visible, setVisible] = useState(false)
+  const [copied, setCopied] = useState(false)
   const { person, property, issues } = context
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true))
   }, [])
+
+  const copyPhone = () => {
+    navigator.clipboard.writeText(person.phone)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -57,6 +64,9 @@ export function CallerModal({ context, onLogNote, onDismiss }: Props) {
         <div className="flex items-center gap-2 mb-4 text-gray-300">
           <Phone className="w-4 h-4 text-gray-500" />
           <span className="font-mono text-sm">{person.phone}</span>
+          <button onClick={copyPhone} className="ml-auto text-gray-500 hover:text-gray-300 transition-colors text-xs">
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
         </div>
 
         <div className="flex items-start gap-2 mb-5 text-gray-300">
