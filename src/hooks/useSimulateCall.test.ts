@@ -47,7 +47,7 @@ describe('useSimulateCall', () => {
 
     const { result } = renderHook(() => useSimulateCall())
 
-    let context: Awaited<ReturnType<typeof result.current.call>>
+    let context: Awaited<ReturnType<typeof result.current.call>> = null
     await act(async () => {
       context = await result.current.call()
     })

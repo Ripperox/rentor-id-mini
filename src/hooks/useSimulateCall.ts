@@ -35,7 +35,7 @@ export function useSimulateCall() {
           .limit(1)
           .single()
         if (e2) throw e2
-        property = (data as { properties: Property }).properties
+        property = (data as unknown as { properties: Property }).properties
       }
 
       const { data: issues, error: e3 } = await supabase
