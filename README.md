@@ -1,32 +1,35 @@
-# React + TypeScript + Vite
+# Rentor Internal — Caller ID Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A proof-of-concept internal tool simulating Rentor's VoIP caller-ID system. When staff receive an inbound call, they click "Simulate Incoming Call" to instantly surface the caller's profile, associated property, and open maintenance issues — exactly as the real system does when a tenant or owner phones in.
 
-Currently, two official plugins are available:
+Built as a portfolio project for a Junior Full Stack Developer application.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Tech Stack
 
-## React Compiler
+- **Frontend:** Vite + React + TypeScript + Tailwind CSS
+- **Database:** Supabase (Postgres)
+- **Deploy:** Vercel
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Local Setup
 
-## Expanding the Oxlint configuration
+1. Clone the repo
+2. Install dependencies: `bun install`
+3. Copy env file: `cp .env.example .env.local`
+4. Fill in your Supabase credentials in `.env.local`
+5. In Supabase SQL Editor, run `src/db/schema.sql` then `src/db/seed.sql`
+6. Start dev server: `bun run dev`
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+## Environment Variables
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
+| Variable | Description |
+|---|---|
+| `VITE_SUPABASE_URL` | Your Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Your Supabase anon public key |
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Features
+
+- Real-time caller identification (tenant or owner)
+- Property details and unit number
+- Open maintenance issue history with age
+- One-click call logging to database
+- Copy-to-clipboard phone number
