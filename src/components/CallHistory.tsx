@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Search, Inbox, MessageSquareText } from 'lucide-react'
+import { Search, Inbox, MessageSquareText, BellRing } from 'lucide-react'
 import type { CallHistoryEntry } from '../types'
 import { relativeTime, clockTime } from '../lib/format'
 
@@ -97,6 +97,17 @@ export function CallHistory({ entries, loading }: Props) {
                         }`}
                       >
                         {isOwner ? 'Owner' : 'Tenant'}
+                      </span>
+                    )}
+                    {entry.reason && (
+                      <span className="rounded bg-white/5 px-1.5 py-px font-mono text-[9px] uppercase tracking-wider text-ink-500">
+                        {entry.reason}
+                      </span>
+                    )}
+                    {entry.follow_up && (
+                      <span className="flex items-center gap-1 rounded bg-warn/15 px-1.5 py-px font-mono text-[9px] font-semibold uppercase tracking-wider text-warn">
+                        <BellRing className="h-2.5 w-2.5" />
+                        Follow-up
                       </span>
                     )}
                   </div>

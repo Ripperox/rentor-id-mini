@@ -23,9 +23,18 @@ to a real Postgres database with row-level security, tests, and continuous deplo
 - **Incoming-call experience** — a ringing overlay withholds caller identity until the agent
   *answers*, then reveals the full caller card (just like real caller-ID resolving on pickup).
 - **Live operations dashboard** — KPI tiles (properties, tenants, open issues, calls today)
-  computed from the database with `count` queries, not hardcoded.
-- **Actionable caller card** — resolve a maintenance issue inline (writes back to Postgres),
-  jot a note, and log the call. Co-residents at the same unit are surfaced automatically.
+  computed from the database with `count` queries, with an **emergency** signal on the issues tile.
+- **Triage-aware caller card** — open issues carry a **priority** (emergency/urgent/routine),
+  a **category** (plumbing, electrical, HVAC…), and an **SLA "overdue"** flag; resolve them inline.
+- **Report a problem mid-call** — the agent logs a *new* maintenance issue (category + priority)
+  straight from the card — the most common reason tenants actually call.
+- **Lease & rent context** — tenant cards show rent standing (paid/late/overdue), monthly rent,
+  lease end, and the owner's contact for **escalation**; owner cards show portfolio size.
+- **Structured call disposition** — every call is tagged with a reason (maintenance/payment/
+  lease/complaint) and an optional **follow-up flag** that feeds a callback queue.
+- **⌘K command palette** — search any tenant, owner, or phone number and pull up their card
+  without waiting for a call. Keyboard-navigable.
+- **Follow-ups queue** — flagged calls surface as pending callbacks until an agent clears them.
 - **Persistent, searchable history** — every logged call is read back from the DB (joined with
   person + property) and survives a refresh; client-side search across name/property/note.
 - **Production hygiene** — typed end-to-end, unit-tested data layer, linted, and auto-deployed
@@ -93,6 +102,7 @@ In the Supabase SQL Editor, run the migrations in order:
 1. `src/db/schema.sql` — tables + RLS policies
 2. `src/db/seed.sql` — demo owners, tenants, properties, issues
 3. `src/db/migrations/002_history_and_actions.sql` — history read-back + agent actions
+4. `src/db/migrations/003_triage_lease_disposition.sql` — issue triage, leases, call disposition
 
 Then:
 
