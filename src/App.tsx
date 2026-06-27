@@ -1,78 +1,111 @@
 import { useState, useCallback } from 'react'
-import { NavBar } from './components/NavBar'
+import { Background } from './components/Background'
+import { TopBar } from './components/TopBar'
+import { StatsRow } from './components/StatsRow'
 import { SimulateButton } from './components/SimulateButton'
-import { CallerModal } from './components/CallerModal'
-import { CallLogTable } from './components/CallLogTable'
+import { IncomingCall } from './components/IncomingCall'
+import { CallHistory } from './components/CallHistory'
 import { Toast } from './components/Toast'
 import { useSimulateCall } from './hooks/useSimulateCall'
-import type { CallerContext, CallEntry } from './types'
+import { useDeskStats } from './hooks/useDeskStats'
+import { useCallHistory } from './hooks/useCallHistory'
+import type { CallerContext } from './types'
+
+const AGENT_NAME = 'Rishit Dhote'
+
+type ToastState = { message: string; type: 'success' | 'error' }
 
 export default function App() {
-  const [modal, setModal] = useState<CallerContext | null>(null)
-  const [callLog, setCallLog] = useState<CallEntry[]>([])
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
-  const { call, logNote, loading, error } = useSimulateCall()
+  const [incoming, setIncoming] = useState<CallerContext | null>(null)
+  const [toast, setToast] = useState<ToastState | null>(null)
+
+  const { call, resolveIssue, logNote, loading, error } = useSimulateCall()
+  const { stats, refresh: refreshStats } = useDeskStats()
+  const { entries, loading: historyLoading, refresh: refreshHistory } = useCallHistory()
 
   const handleSimulate = useCallback(async () => {
-    const context = await call()
-    if (context) {
-      setModal(context)
-    }
+    const ctx = await call()
+    if (ctx) setIncoming(ctx)
   }, [call])
 
-  const handleLogNote = useCallback(async () => {
-    if (!modal) return
-    try {
-      await logNote(modal)
-      setCallLog(prev => [{
-        id: crypto.randomUUID(),
-        person: modal.person,
-        property: modal.property,
-        timestamp: new Date(),
-      }, ...prev])
-      setToast({ message: 'Call logged successfully', type: 'success' })
-      setModal(null)
-    } catch {
-      setToast({ message: 'Failed to log call — check connection', type: 'error' })
-    }
-  }, [modal, logNote])
+  const handleResolveIssue = useCallback(
+    async (issueId: string) => {
+      try {
+        await resolveIssue(issueId)
+        void refreshStats()
+        setToast({ message: 'Issue marked resolved', type: 'success' })
+      } catch {
+        setToast({ message: 'Could not resolve issue — check connection', type: 'error' })
+        throw new Error('resolve failed')
+      }
+    },
+    [resolveIssue, refreshStats],
+  )
+
+  const handleLogCall = useCallback(
+    async (note: string) => {
+      if (!incoming) return
+      try {
+        await logNote(incoming, note, AGENT_NAME)
+        await refreshHistory()
+        void refreshStats()
+        setToast({ message: 'Call logged successfully', type: 'success' })
+        setIncoming(null)
+      } catch {
+        setToast({ message: 'Failed to log call — check connection', type: 'error' })
+      }
+    },
+    [incoming, logNote, refreshHistory, refreshStats],
+  )
+
+  const today = new Date().toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  })
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <NavBar />
+    <div className="relative min-h-screen">
+      <Background />
+      <TopBar agentName={AGENT_NAME} />
 
-      <main className="max-w-5xl mx-auto px-6 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white">Call Activity</h1>
-          <p className="text-gray-500 text-sm mt-1">Real-time caller identification dashboard</p>
+      <main className="relative z-10 mx-auto max-w-6xl px-6 pb-32 pt-6">
+        <div className="mb-6 flex items-end justify-between">
+          <div>
+            <h1 className="font-display text-3xl font-extrabold tracking-tight text-white">
+              Operations Desk
+            </h1>
+            <p className="mt-1 text-sm text-ink-500">
+              Real-time caller identification · <span className="text-gray-400">{today}</span>
+            </p>
+          </div>
         </div>
 
         {error && (
-          <div className="mb-4 bg-red-950/50 border border-red-800 rounded-lg px-4 py-3 text-red-300 text-sm">
+          <div className="mb-4 rounded-xl border border-alert/30 bg-alert/10 px-4 py-3 text-sm text-alert">
             {error}
           </div>
         )}
 
-        <CallLogTable entries={callLog} />
+        <StatsRow stats={stats} />
+
+        <div className="mt-6">
+          <CallHistory entries={entries} loading={historyLoading} />
+        </div>
       </main>
 
       <SimulateButton onClick={handleSimulate} loading={loading} />
 
-      {modal && (
-        <CallerModal
-          context={modal}
-          onLogNote={handleLogNote}
-          onDismiss={() => setModal(null)}
+      {incoming && (
+        <IncomingCall
+          context={incoming}
+          onResolveIssue={handleResolveIssue}
+          onLogCall={handleLogCall}
+          onClose={() => setIncoming(null)}
         />
       )}
 
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   )
 }

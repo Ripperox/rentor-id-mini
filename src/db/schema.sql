@@ -41,8 +41,8 @@ alter table tenancies enable row level security;
 alter table issues enable row level security;
 alter table call_logs enable row level security;
 
-create policy "anon read people" on people for select to anon using (true);
-create policy "anon read properties" on properties for select to anon using (true);
-create policy "anon read tenancies" on tenancies for select to anon using (true);
-create policy "anon read issues" on issues for select to anon using (true);
-create policy "anon insert call_logs" on call_logs for insert to anon with check (true);
+create policy anon_read_people on people for select to anon using (true);
+create policy anon_read_properties on properties for select to anon using (true);
+create policy anon_read_tenancies on tenancies for select to anon using (true);
+create policy anon_read_issues on issues for select to anon using (true);
+create policy anon_insert_call_logs on call_logs for insert to anon with check (true);

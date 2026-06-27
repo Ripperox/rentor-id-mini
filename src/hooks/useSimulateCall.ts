@@ -1,7 +1,12 @@
 import { useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import type { CallerContext, Person, Property } from '../types'
+import type { CallerContext, Person, Property, Issue } from '../types'
 
+/**
+ * Drives the incoming-call simulation: picks a random caller, resolves their
+ * property, co-residents and open issues, and exposes the write actions an
+ * agent performs from the caller card (resolve an issue, log the call).
+ */
 export function useSimulateCall() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -17,7 +22,6 @@ export function useSimulateCall() {
       const person = people[Math.floor(Math.random() * people.length)] as Person
 
       let property: Property
-
       if (person.role === 'owner') {
         const { data, error: e2 } = await supabase
           .from('properties')
@@ -38,15 +42,24 @@ export function useSimulateCall() {
         property = (data as unknown as { properties: Property }).properties
       }
 
-      const { data: issues, error: e3 } = await supabase
+      const { data: residentRows, error: e3 } = await supabase
+        .from('tenancies')
+        .select('people(*)')
+        .eq('property_id', property.id)
+      if (e3) throw e3
+      const coResidents = ((residentRows ?? []) as unknown as { people: Person }[])
+        .map(r => r.people)
+        .filter(p => p && p.id !== person.id)
+
+      const { data: issues, error: e4 } = await supabase
         .from('issues')
         .select('*')
         .eq('property_id', property.id)
         .eq('status', 'open')
         .order('created_at', { ascending: false })
-      if (e3) throw e3
+      if (e4) throw e4
 
-      return { person, property, issues: issues ?? [] }
+      return { person, property, coResidents, issues: (issues ?? []) as Issue[] }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load caller')
       return null
@@ -55,13 +68,26 @@ export function useSimulateCall() {
     }
   }, [])
 
-  const logNote = useCallback(async (ctx: CallerContext): Promise<void> => {
-    const { error } = await supabase.from('call_logs').insert({
-      person_id: ctx.person.id,
-      property_id: ctx.property.id,
-    })
-    if (error) throw error
+  const resolveIssue = useCallback(async (issueId: string): Promise<void> => {
+    const { error: e } = await supabase
+      .from('issues')
+      .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+      .eq('id', issueId)
+    if (e) throw e
   }, [])
 
-  return { call, logNote, loading, error }
+  const logNote = useCallback(
+    async (ctx: CallerContext, note: string, agentName: string): Promise<void> => {
+      const { error: e } = await supabase.from('call_logs').insert({
+        person_id: ctx.person.id,
+        property_id: ctx.property.id,
+        note: note.trim() || null,
+        agent_name: agentName,
+      })
+      if (e) throw e
+    },
+    [],
+  )
+
+  return { call, resolveIssue, logNote, loading, error }
 }
