@@ -1,122 +1,74 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useCallback } from 'react'
+import { NavBar } from './components/NavBar'
+import { SimulateButton } from './components/SimulateButton'
+import { CallerModal } from './components/CallerModal'
+import { CallLogTable } from './components/CallLogTable'
+import { Toast } from './components/Toast'
+import { useSimulateCall } from './hooks/useSimulateCall'
+import type { CallerContext, CallEntry } from './types'
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [modal, setModal] = useState<CallerContext | null>(null)
+  const [callLog, setCallLog] = useState<CallEntry[]>([])
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const { call, logNote, loading, error } = useSimulateCall()
+
+  const handleSimulate = useCallback(async () => {
+    const context = await call()
+    if (context) {
+      setModal(context)
+      setCallLog(prev => [{
+        id: crypto.randomUUID(),
+        person: context.person,
+        property: context.property,
+        timestamp: new Date(),
+      }, ...prev])
+    }
+  }, [call])
+
+  const handleLogNote = useCallback(async () => {
+    if (!modal) return
+    await logNote(modal)
+    setToast({ message: 'Call logged successfully', type: 'success' })
+    setModal(null)
+  }, [modal, logNote])
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="min-h-screen bg-gray-950 text-gray-100">
+      <NavBar />
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      <main className="max-w-5xl mx-auto px-6 py-8">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-white">Call Activity</h1>
+          <p className="text-gray-500 text-sm mt-1">Real-time caller identification dashboard</p>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+        {error && (
+          <div className="mb-4 bg-red-950/50 border border-red-800 rounded-lg px-4 py-3 text-red-300 text-sm">
+            {error}
+          </div>
+        )}
+
+        <CallLogTable entries={callLog} />
+      </main>
+
+      <SimulateButton onClick={handleSimulate} loading={loading} />
+
+      {modal && (
+        <CallerModal
+          context={modal}
+          onLogNote={handleLogNote}
+          onDismiss={() => setModal(null)}
+        />
+      )}
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+    </div>
   )
 }
-
-export default App
