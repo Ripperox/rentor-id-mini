@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "rentor-vite-temp",
+      "name": "rentor-id-mini",
       "dependencies": {
         "@supabase/supabase-js": "^2.108.2",
         "lucide-react": "^1.21.0",
