@@ -12,23 +12,31 @@ export function useDeskStats() {
       const startOfDay = new Date()
       startOfDay.setHours(0, 0, 0, 0)
 
-      const [properties, tenants, openIssues, callsToday] = await Promise.all([
+      const [properties, tenants, openIssues, emergencies, callsToday] = await Promise.all([
         supabase.from('properties').select('*', { count: 'exact', head: true }),
         supabase.from('people').select('*', { count: 'exact', head: true }).eq('role', 'tenant'),
         supabase.from('issues').select('*', { count: 'exact', head: true }).eq('status', 'open'),
+        supabase
+          .from('issues')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'open')
+          .eq('priority', 'emergency'),
         supabase
           .from('call_logs')
           .select('*', { count: 'exact', head: true })
           .gte('logged_at', startOfDay.toISOString()),
       ])
 
-      const firstError = [properties, tenants, openIssues, callsToday].find(r => r.error)?.error
+      const firstError = [properties, tenants, openIssues, emergencies, callsToday].find(
+        r => r.error,
+      )?.error
       if (firstError) throw firstError
 
       setStats({
         properties: properties.count ?? 0,
         tenants: tenants.count ?? 0,
         openIssues: openIssues.count ?? 0,
+        emergencies: emergencies.count ?? 0,
         callsToday: callsToday.count ?? 0,
       })
       setError(null)

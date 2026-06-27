@@ -1,12 +1,16 @@
 import { useState } from 'react'
 import { Phone, PhoneOff } from 'lucide-react'
-import type { CallerContext } from '../types'
+import type { CallerContext, Issue, CallReason, IssueCategory, Priority } from '../types'
 import { CallerCard } from './CallerCard'
 
 interface Props {
   context: CallerContext
   onResolveIssue: (issueId: string) => Promise<void>
-  onLogCall: (note: string) => Promise<void>
+  onCreateIssue: (
+    propertyId: string,
+    input: { description: string; category: IssueCategory; priority: Priority },
+  ) => Promise<Issue>
+  onLogCall: (disposition: { note: string; reason: CallReason; followUp: boolean }) => Promise<void>
   onClose: () => void
 }
 
@@ -14,7 +18,7 @@ interface Props {
  * Full-screen incoming-call experience. Rings first (caller identity withheld),
  * then on Answer reveals the full {@link CallerCard}. Decline dismisses.
  */
-export function IncomingCall({ context, onResolveIssue, onLogCall, onClose }: Props) {
+export function IncomingCall({ context, onResolveIssue, onCreateIssue, onLogCall, onClose }: Props) {
   const [answered, setAnswered] = useState(false)
 
   return (
@@ -22,7 +26,9 @@ export function IncomingCall({ context, onResolveIssue, onLogCall, onClose }: Pr
       {answered ? (
         <CallerCard
           context={context}
+          mode="call"
           onResolveIssue={onResolveIssue}
+          onCreateIssue={onCreateIssue}
           onLogCall={onLogCall}
           onClose={onClose}
         />

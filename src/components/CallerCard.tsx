@@ -4,44 +4,67 @@ import {
   MapPin,
   Copy,
   Check,
-  CircleAlert,
   Users,
   ClipboardCheck,
   PhoneOff,
   Loader2,
+  Plus,
+  CalendarClock,
+  DollarSign,
+  Building2,
+  ShieldAlert,
+  Bell,
+  BellRing,
+  CircleAlert,
+  UserCircle2,
 } from 'lucide-react'
-import type { CallerContext, Issue } from '../types'
-import { timeAgo } from '../lib/format'
+import type { CallerContext, Issue, CallReason, CallerMode, IssueCategory, Priority } from '../types'
+import { IssueItem } from './IssueItem'
+import { NewIssueForm } from './NewIssueForm'
+import { RENT_META } from '../lib/issueMeta'
+import { money, monthYear } from '../lib/format'
 
 interface Props {
   context: CallerContext
+  mode: CallerMode
   onResolveIssue: (issueId: string) => Promise<void>
-  onLogCall: (note: string) => Promise<void>
+  onCreateIssue: (
+    propertyId: string,
+    input: { description: string; category: IssueCategory; priority: Priority },
+  ) => Promise<Issue>
+  onLogCall: (disposition: { note: string; reason: CallReason; followUp: boolean }) => Promise<void>
   onClose: () => void
 }
 
+const REASONS: { value: CallReason; label: string }[] = [
+  { value: 'maintenance', label: 'Maintenance' },
+  { value: 'payment', label: 'Payment' },
+  { value: 'lease', label: 'Lease' },
+  { value: 'complaint', label: 'Complaint' },
+  { value: 'general', label: 'General' },
+]
+
 function initialsOf(name: string): string {
-  return name
-    .split(' ')
-    .map(w => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
+  return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
 }
 
-export function CallerCard({ context, onResolveIssue, onLogCall, onClose }: Props) {
-  const { person, property, coResidents } = context
+export function CallerCard({ context, mode, onResolveIssue, onCreateIssue, onLogCall, onClose }: Props) {
+  const { person, property, coResidents, lease, ownerContact, portfolioCount } = context
   const [issues, setIssues] = useState<Issue[]>(context.issues)
   const [resolvingId, setResolvingId] = useState<string | null>(null)
+  const [showNewIssue, setShowNewIssue] = useState(false)
   const [note, setNote] = useState('')
+  const [reason, setReason] = useState<CallReason>(context.issues.length > 0 ? 'maintenance' : 'general')
+  const [followUp, setFollowUp] = useState(false)
   const [copied, setCopied] = useState(false)
   const [logging, setLogging] = useState(false)
   const [elapsed, setElapsed] = useState(0)
 
   useEffect(() => {
+    if (mode !== 'call') return
     const id = setInterval(() => setElapsed(e => e + 1), 1000)
     return () => clearInterval(id)
-  }, [])
+  }, [mode])
 
   const duration = `${String(Math.floor(elapsed / 60)).padStart(2, '0')}:${String(elapsed % 60).padStart(2, '0')}`
   const isOwner = person.role === 'owner'
@@ -59,32 +82,52 @@ export function CallerCard({ context, onResolveIssue, onLogCall, onClose }: Prop
       await onResolveIssue(issue.id)
       setIssues(prev => prev.map(i => (i.id === issue.id ? { ...i, status: 'resolved' } : i)))
     } catch {
-      /* parent surfaces the error toast */
+      /* parent toast */
     } finally {
       setResolvingId(null)
+    }
+  }
+
+  const handleCreate = async (input: { description: string; category: IssueCategory; priority: Priority }) => {
+    try {
+      const created = await onCreateIssue(property.id, input)
+      setIssues(prev => [created, ...prev])
+      setShowNewIssue(false)
+      if (reason === 'general') setReason('maintenance')
+    } catch {
+      /* parent surfaces the error toast; keep the form open to retry */
     }
   }
 
   const handleLog = async () => {
     setLogging(true)
     try {
-      await onLogCall(note)
+      await onLogCall({ note, reason, followUp })
     } finally {
       setLogging(false)
     }
   }
 
   return (
-    <div className="surface animate-scale-in flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl shadow-glow">
+    <div className="surface animate-scale-in flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl shadow-glow">
       {/* Header */}
       <div className="relative shrink-0 border-b border-white/8 bg-gradient-to-b from-signal/12 to-transparent px-6 pt-5 pb-4">
         <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em] text-signal-soft">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-live opacity-70" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-live" />
-          </span>
-          Connected
-          <span className="ml-auto tnum rounded bg-white/5 px-1.5 py-0.5 text-gray-400">{duration}</span>
+          {mode === 'call' ? (
+            <>
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-live opacity-70" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-live" />
+              </span>
+              Connected
+              <span className="ml-auto tnum rounded bg-white/5 px-1.5 py-0.5 text-gray-400">{duration}</span>
+            </>
+          ) : (
+            <>
+              <UserCircle2 className="h-3.5 w-3.5" />
+              Directory profile
+            </>
+          )}
         </div>
 
         <div className="mt-3 flex items-center gap-3.5">
@@ -120,7 +163,7 @@ export function CallerCard({ context, onResolveIssue, onLogCall, onClose }: Prop
         </div>
       </div>
 
-      {/* Scrollable body */}
+      {/* Body */}
       <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
         {/* Property */}
         <section>
@@ -131,14 +174,9 @@ export function CallerCard({ context, onResolveIssue, onLogCall, onClose }: Prop
             {coResidents.length > 0 && (
               <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-white/5 pt-3">
                 <Users className="h-3.5 w-3.5 text-ink-500" />
-                <span className="font-mono text-[10px] uppercase tracking-wider text-ink-500">
-                  Also here
-                </span>
+                <span className="font-mono text-[10px] uppercase tracking-wider text-ink-500">Also here</span>
                 {coResidents.map(r => (
-                  <span
-                    key={r.id}
-                    className="rounded-md bg-white/5 px-1.5 py-0.5 text-[11px] text-gray-300"
-                  >
+                  <span key={r.id} className="rounded-md bg-white/5 px-1.5 py-0.5 text-[11px] text-gray-300">
                     {r.name}
                   </span>
                 ))}
@@ -147,63 +185,126 @@ export function CallerCard({ context, onResolveIssue, onLogCall, onClose }: Prop
           </div>
         </section>
 
+        {/* Lease & rent (tenant) or portfolio (owner) */}
+        {!isOwner && lease ? (
+          <section>
+            <SectionLabel icon={<DollarSign className="h-3.5 w-3.5" />}>Lease &amp; Rent</SectionLabel>
+            <div className="mt-2 rounded-xl border border-white/8 bg-white/[0.02] p-3.5">
+              <div className="flex items-center justify-between">
+                <span
+                  className={`rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider ${RENT_META[lease.rent_status].chip}`}
+                >
+                  {RENT_META[lease.rent_status].label}
+                </span>
+                <span className="tnum text-sm font-semibold text-gray-100">{money(lease.rent_cents)}</span>
+              </div>
+              <div className="mt-2.5 flex items-center gap-1.5 font-mono text-[11px] text-ink-500">
+                <CalendarClock className="h-3.5 w-3.5" />
+                Lease ends {monthYear(lease.lease_end)}
+              </div>
+              {ownerContact && (
+                <div className="mt-3 flex items-center gap-2 border-t border-white/5 pt-3">
+                  <ShieldAlert className="h-3.5 w-3.5 text-warn" />
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-ink-500">Escalate to owner</span>
+                  <span className="ml-auto text-xs text-gray-300">{ownerContact.name}</span>
+                  <span className="font-mono text-[11px] text-ink-500">{ownerContact.phone}</span>
+                </div>
+              )}
+            </div>
+          </section>
+        ) : isOwner ? (
+          <section>
+            <SectionLabel icon={<Building2 className="h-3.5 w-3.5" />}>Portfolio</SectionLabel>
+            <div className="mt-2 rounded-xl border border-white/8 bg-white/[0.02] px-3.5 py-3 text-sm text-gray-200">
+              Owns <span className="font-semibold text-white">{portfolioCount}</span>{' '}
+              {portfolioCount === 1 ? 'property' : 'properties'} · viewing{' '}
+              <span className="text-gray-300">{property.address}</span>
+            </div>
+          </section>
+        ) : null}
+
         {/* Open issues */}
         <section>
-          <SectionLabel icon={<CircleAlert className="h-3.5 w-3.5 text-warn" />}>
-            Open Issues
-            <span className="ml-1.5 tnum rounded-full bg-warn/15 px-1.5 text-[10px] text-warn">
-              {openIssues.length}
-            </span>
-          </SectionLabel>
-          {openIssues.length === 0 ? (
-            <p className="mt-2 rounded-xl border border-white/8 bg-white/[0.02] px-3.5 py-3 text-sm text-ink-500">
-              No open issues on this property. ✓
-            </p>
-          ) : (
-            <ul className="mt-2 space-y-2">
-              {openIssues.map(issue => (
-                <li
-                  key={issue.id}
-                  className="group flex items-center gap-3 rounded-xl border border-alert/20 bg-alert/[0.06] px-3.5 py-3"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm text-gray-100">{issue.description}</div>
-                    <div className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-alert/70">
-                      {timeAgo(issue.created_at)}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleResolve(issue)}
-                    disabled={resolvingId === issue.id}
-                    className="flex shrink-0 items-center gap-1.5 rounded-lg border border-live/30 bg-live/10 px-2.5 py-1.5 font-mono text-[11px] font-semibold text-live transition-colors hover:bg-live/20 disabled:opacity-50"
-                  >
-                    {resolvingId === issue.id ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Check className="h-3 w-3" />
-                    )}
-                    Resolve
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="flex items-center justify-between">
+            <SectionLabel icon={<CircleAlert className="h-3.5 w-3.5 text-warn" />}>
+              Open Issues
+              <span className="ml-1.5 tnum rounded-full bg-warn/15 px-1.5 text-[10px] text-warn">{openIssues.length}</span>
+            </SectionLabel>
+            {!showNewIssue && (
+              <button
+                onClick={() => setShowNewIssue(true)}
+                className="flex items-center gap-1 rounded-lg border border-signal/30 bg-signal/10 px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-signal-soft transition-colors hover:bg-signal/20"
+              >
+                <Plus className="h-3 w-3" />
+                Report
+              </button>
+            )}
+          </div>
+
+          <div className="mt-2 space-y-2">
+            {showNewIssue && <NewIssueForm onSubmit={handleCreate} onCancel={() => setShowNewIssue(false)} />}
+            {openIssues.length === 0 && !showNewIssue ? (
+              <p className="rounded-xl border border-white/8 bg-white/[0.02] px-3.5 py-3 text-sm text-ink-500">
+                No open issues on this property. ✓
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {openIssues.map(issue => (
+                  <IssueItem
+                    key={issue.id}
+                    issue={issue}
+                    resolving={resolvingId === issue.id}
+                    onResolve={handleResolve}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
         </section>
 
-        {/* Note */}
+        {/* Disposition */}
         <section>
-          <SectionLabel icon={<ClipboardCheck className="h-3.5 w-3.5" />}>Call Note</SectionLabel>
+          <SectionLabel icon={<ClipboardCheck className="h-3.5 w-3.5" />}>Call Disposition</SectionLabel>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {REASONS.map(r => {
+              const active = reason === r.value
+              return (
+                <button
+                  key={r.value}
+                  onClick={() => setReason(r.value)}
+                  className={`rounded-lg border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors ${
+                    active
+                      ? 'border-signal/50 bg-signal/20 text-signal-soft'
+                      : 'border-white/8 bg-white/[0.02] text-ink-500 hover:text-gray-300'
+                  }`}
+                >
+                  {r.label}
+                </button>
+              )
+            })}
+          </div>
           <textarea
             value={note}
             onChange={e => setNote(e.target.value)}
             placeholder="What did the caller need? Notes save with the call log…"
-            rows={3}
+            rows={2}
             className="mt-2 w-full resize-none rounded-xl border border-white/8 bg-white/[0.02] px-3.5 py-3 text-sm text-gray-100 placeholder:text-ink-500 outline-none transition-colors focus:border-signal/50 focus:bg-white/[0.04]"
           />
+          <button
+            onClick={() => setFollowUp(f => !f)}
+            className={`mt-2 flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+              followUp
+                ? 'border-signal/50 bg-signal/15 text-signal-soft'
+                : 'border-white/8 bg-white/[0.02] text-ink-500 hover:text-gray-300'
+            }`}
+          >
+            {followUp ? <BellRing className="h-3.5 w-3.5" /> : <Bell className="h-3.5 w-3.5" />}
+            {followUp ? 'Flagged for follow-up' : 'Flag for follow-up'}
+          </button>
         </section>
       </div>
 
-      {/* Footer actions */}
+      {/* Footer */}
       <div className="flex shrink-0 gap-3 border-t border-white/8 bg-ink-900/40 px-6 py-4">
         <button
           onClick={handleLog}
@@ -211,14 +312,14 @@ export function CallerCard({ context, onResolveIssue, onLogCall, onClose }: Prop
           className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-signal to-signal-deep py-2.5 text-sm font-semibold text-white shadow-glow transition-transform hover:-translate-y-px disabled:opacity-60"
         >
           {logging ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
-          Log Call
+          {mode === 'call' ? 'Log Call' : 'Log Contact'}
         </button>
         <button
           onClick={onClose}
           className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-gray-300 transition-colors hover:bg-white/[0.07]"
         >
-          <PhoneOff className="h-4 w-4" />
-          End
+          {mode === 'call' ? <PhoneOff className="h-4 w-4" /> : null}
+          {mode === 'call' ? 'End' : 'Close'}
         </button>
       </div>
     </div>

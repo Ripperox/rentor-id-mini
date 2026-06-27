@@ -44,6 +44,17 @@ export function StatsRow({ stats }: Props) {
                 <span className="inline-block h-7 w-10 animate-pulse-soft rounded bg-ink-700" />
               )}
             </div>
+            {stat.key === 'openIssues' && stats && stats.emergencies > 0 && (
+              <div className="mt-1.5 flex items-center gap-1.5">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-alert opacity-70" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-alert" />
+                </span>
+                <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-alert">
+                  {stats.emergencies} emergency
+                </span>
+              </div>
+            )}
           </div>
         )
       })}

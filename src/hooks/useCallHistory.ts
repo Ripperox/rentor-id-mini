@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import type { CallHistoryEntry } from '../types'
 
-const SELECT = 'id, logged_at, note, agent_name, people(name, role, phone), properties(address, unit)'
+const SELECT =
+  'id, person_id, logged_at, note, agent_name, reason, follow_up, people(name, role, phone), properties(address, unit)'
 
 /** Loads persisted call history (joined with person + property) so the feed survives a refresh. */
 export function useCallHistory() {
@@ -21,9 +22,12 @@ export function useCallHistory() {
 
       const rows = (data ?? []) as unknown as Array<{
         id: string
+        person_id: string
         logged_at: string
         note: string | null
         agent_name: string | null
+        reason: CallHistoryEntry['reason']
+        follow_up: boolean
         people: CallHistoryEntry['person']
         properties: CallHistoryEntry['property']
       }>
@@ -31,9 +35,12 @@ export function useCallHistory() {
       setEntries(
         rows.map(r => ({
           id: r.id,
+          person_id: r.person_id,
           logged_at: r.logged_at,
           note: r.note,
           agent_name: r.agent_name,
+          reason: r.reason,
+          follow_up: r.follow_up,
           person: r.people,
           property: r.properties,
         })),
@@ -46,9 +53,18 @@ export function useCallHistory() {
     }
   }, [])
 
+  /** Clear a follow-up flag once the agent has called the person back. */
+  const clearFollowUp = useCallback(async (id: string) => {
+    setEntries(prev => prev.map(e => (e.id === id ? { ...e, follow_up: false } : e)))
+    const { error: e } = await supabase.from('call_logs').update({ follow_up: false }).eq('id', id)
+    if (e) await refresh() // revert optimistic update on failure
+  }, [refresh])
+
   useEffect(() => {
     void refresh()
   }, [refresh])
 
-  return { entries, loading, error, refresh }
+  const followUps = useMemo(() => entries.filter(e => e.follow_up), [entries])
+
+  return { entries, followUps, loading, error, refresh, clearFollowUp }
 }
