@@ -47,12 +47,12 @@ export function TopBar({ agentName }: Props) {
               Dispatch agent
             </div>
           </div>
-          <div className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-signal to-signal-deep text-[12px] font-bold text-white shadow-glow">
+          <div className="grid h-9 w-9 place-items-center rounded-full bg-signal/90 text-[12px] font-bold text-ink-950">
             {initials}
           </div>
         </div>
       </div>
-      <div className="hairline animate-shimmer" />
+      <div className="hairline" />
     </header>
   )
 }
